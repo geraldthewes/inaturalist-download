@@ -6,6 +6,7 @@ import pyarrow.parquet as pq
 import requests
 from typing import Dict, Any
 from tqdm import tqdm
+import pandas as pd
 
 # Configure logging
 logging.basicConfig(

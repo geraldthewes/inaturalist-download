@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 import pyarrow.parquet as pq
 import requests
 from typing import Dict, Any
+from tqdm import tqdm
 
 # Configure logging
 logging.basicConfig(
@@ -49,34 +50,37 @@ def main():
     try:
         pf = pq.ParquetFile(args.parquet)
         num_row_groups = pf.num_row_groups
+        print(f'Processing downloades in {num_row_groups} groups')
         
         with ThreadPoolExecutor(max_workers=10) as executor:
             futures = []
             
             for rg_idx in range(num_row_groups):
                 # Read row group
+                print(f"Download group {rg_idx}/{num_row_groups}")
                 batch = pf.read_row_group(rg_idx, columns=['id', 'identifier', 'foo', 'format'])
                 
                 # Convert to pandas DataFrame for easier processing
                 df = batch.to_pandas()
                 
-                for _, row in df.iterrows():
+                for _, row in tqdm(df.iterrows()):
                     if pd.isna(row['identifier']) or pd.isna(row['id']) or pd.isna(row['foo']):
                         continue
-                    
+
                     url = row['identifier']
                     identifier_id = str(row['id'])
                     foo_val = str(row['foo'])
                     file_format = row['format'].split('/')[-1] if '/' in row['format'] else row['format']
-                    
+
                     output_subdir = os.path.join(args.output, identifier_id)
                     filename = f"{foo_val}.{file_format}"
                     output_path = os.path.join(output_subdir, filename)
-                    
+
                     futures.append(executor.submit(
                         download_image,
                         {'url': url, 'output_path': output_path}
                     ))
+
             
             # Wait for all downloads to complete
             for future in concurrent.futures.as_completed(futures):

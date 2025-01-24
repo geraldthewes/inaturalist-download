@@ -7,6 +7,7 @@ import requests
 from typing import Dict, Any
 from tqdm import tqdm
 import pandas as pd
+import traceback
 
 # Configure logging
 logging.basicConfig(
@@ -65,7 +66,8 @@ def main():
                 df = batch.to_pandas()
                 
                 for _, row in tqdm(df.iterrows()):
-                    if pd.isna(row['identifier']) or pd.isna(row['id']) or pd.isna(row['foo']):
+                    if pd.isna(row['identifier']) or pd.isna(row['id']) or pd.isna(row['foo']) or pd.isna(row['format']):
+                        print(f"Skipping {row['identifier']}") 
                         continue
 
                     url = row['identifier']
@@ -76,11 +78,14 @@ def main():
                     output_subdir = os.path.join(args.output, identifier_id)
                     filename = f"{foo_val}.{file_format}"
                     output_path = os.path.join(output_subdir, filename)
-
-                    futures.append(executor.submit(
-                        download_image,
-                        {'url': url, 'output_path': output_path}
-                    ))
+                    # Check if the file already exists
+                    if not os.path.exists(output_path):
+                        futures.append(executor.submit(
+                            download_image,
+                            {'url': url, 'output_path': output_path}
+                        ))
+                    else:
+                        print(f"Skipping {output_path}")
 
             
             # Wait for all downloads to complete
@@ -91,7 +96,8 @@ def main():
                     logger.error(str(e))
                     
     except Exception as e:
-        logger.error(f"Error processing parquet file: {str(e)}")
+        tb_str = traceback.format_exc()
+        logger.error(f"Error processing parquet file: {str(e)}\n{tb_str}")
 
 if __name__ == "__main__":
     main()

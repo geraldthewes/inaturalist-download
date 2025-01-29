@@ -2,6 +2,7 @@ import os
 import logging
 from argparse import ArgumentParser
 from concurrent.futures import ThreadPoolExecutor
+import concurrent.futures
 import pyarrow.parquet as pq
 import requests
 from typing import Dict, Any
@@ -86,15 +87,15 @@ def main():
                         ))
                     else:
                         print(f"Skipping {output_path}")
-
             
-            # Wait for all downloads to complete
-            for future in concurrent.futures.as_completed(futures):
-                try:
-                    future.result()
-                except Exception as e:
-                    logger.error(str(e))
-                    
+                # Wait for all downloads to complete in current row group
+                for future in concurrent.futures.as_completed(futures):
+                    try:
+                        future.result()
+                    except Exception as e:
+                        logger.error(str(e))
+                del df # release memory
+                        
     except Exception as e:
         tb_str = traceback.format_exc()
         logger.error(f"Error processing parquet file: {str(e)}\n{tb_str}")

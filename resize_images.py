@@ -2,7 +2,38 @@ from PIL import Image
 import os
 import argparse
 
-def resize_image(file_path, size):
+def perform_resize_and_save(file_path, new_width, new_height):
+    """
+    Resize an image and save it to a temporary file before replacing the original.
+    
+    Args:
+        file_path (str): Path to the image file.
+        new_width (int): New width of the resized image.
+        new_height (int): New height of the resized image.
+        
+    Returns:
+        bool: True if the operation was successful, False otherwise.
+    """
+    try:
+        with Image.open(file_path) as img:
+            # Resize the image
+            img = img.resize((new_width, new_height), Image.ANTIALIAS)
+
+            # Save as a temporary file first
+            temp_file = os.path.join(os.path.dirname(file_path), f".{os.path.basename(file_path)}.temp")
+            img.save(temp_file, optimize=True, quality=100)
+            
+            # Replace the original file with the resized image
+            os.replace(temp_file, file_path)
+        return True
+    except Exception as e:
+        print(f"Error processing {file_path}: {str(e)}")
+        # Clean up temporary file if it exists
+        if os.path.exists(temp_file):
+            os.remove(temp_file)
+        return False
+
+    def resize_image(file_path, size):
     """
     Resize a single image maintaining aspect ratio.
     
@@ -24,22 +55,13 @@ def resize_image(file_path, size):
                 new_height = size
                 new_width = int((width * size) / height)
             
-            # Resize the image
-            img = img.resize((new_width, new_height), Image.ANTIALIAS)
-
-            # Save as a temporary file first
-            temp_file = os.path.join(os.path.dirname(file_path), f".{os.path.basename(file_path)}.temp")
-            img.save(temp_file, optimize=True, quality=100)
-            
-            # Replace the original file with the resized image
-            os.replace(temp_file, file_path)
-        return True
+            # Perform the resize and save operation
+            return perform_resize_and_save(file_path, new_width, new_height)
     except Exception as e:
-        print(f"Error processing {file_path}: {str(e)}")
-        # Clean up temporary file if it exists
-        if os.path.exists(temp_file):
-            os.remove(temp_file)
+        print(f"Error opening image {file_path}: {str(e)}")
         return False
+
+
 
 def resize_images_in_place(input_dir, size):
     """

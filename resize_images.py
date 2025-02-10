@@ -49,6 +49,16 @@ def perform_resize_and_save(file_path, new_width, new_height):
             width, height = img.size
             # Determine the smallest dimension
             if width < height:
+                smallest_dimension = width
+            else:
+                smallest_dimension = height
+            
+            # If the smallest dimension is already smaller than or equal to size, do nothing
+            if smallest_dimension <= size:
+                return True
+            
+            # Calculate new dimensions            
+            if width < height:
                 new_width = size
                 new_height = int((height * size) / width)
             else:

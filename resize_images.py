@@ -15,13 +15,14 @@ def perform_resize_and_save(file_path, new_width, new_height):
         bool: True if the operation was successful, False otherwise.
     """
     try:
+        temp_file=None
         with Image.open(file_path) as img:
             # Resize the image
-            img = img.resize((new_width, new_height), Image.ANTIALIAS)
+            img = img.resize((new_width, new_height), Image.LANCZOS)
 
             # Save as a temporary file first
-            temp_file = os.path.join(os.path.dirname(file_path), f".{os.path.basename(file_path)}.temp")
-            img.save(temp_file, optimize=True, quality=100)
+            temp_file = os.path.join(os.path.dirname(file_path), f".{os.path.basename(file_path)}_temp.jpg")
+            img.save(temp_file, optimize=True, quality=95)
             
             # Replace the original file with the resized image
             os.replace(temp_file, file_path)
@@ -29,11 +30,11 @@ def perform_resize_and_save(file_path, new_width, new_height):
     except Exception as e:
         print(f"Error processing {file_path}: {str(e)}")
         # Clean up temporary file if it exists
-        if os.path.exists(temp_file):
+        if temp_file and os.path.exists(temp_file):
             os.remove(temp_file)
         return False
 
-    def resize_image(file_path, size):
+def resize_image(file_path, size):
     """
     Resize a single image maintaining aspect ratio.
     
@@ -55,6 +56,7 @@ def perform_resize_and_save(file_path, new_width, new_height):
             
             # If the smallest dimension is already smaller than or equal to size, do nothing
             if smallest_dimension <= size:
+                print(f"Skipping {file_path}")
                 return True
             
             # Calculate new dimensions            
@@ -66,6 +68,7 @@ def perform_resize_and_save(file_path, new_width, new_height):
                 new_width = int((width * size) / height)
             
             # Perform the resize and save operation
+            print(f"Resize {file_path}")
             return perform_resize_and_save(file_path, new_width, new_height)
     except Exception as e:
         print(f"Error opening image {file_path}: {str(e)}")
@@ -95,7 +98,7 @@ def resize_images_in_place(input_dir, size):
 def main():
     parser = argparse.ArgumentParser(description="Recursively resize images in place within the specified directory.")
     parser.add_argument("input_directory", type=str, help="Path to the directory containing images.")
-    parser.add_argument("size", type=int, help="Target size for the smallest dimension.")
+    parser.add_argument("--size", type=int, default=518, help="Target size for the smallest dimension.")
 
     args = parser.parse_args()
 
